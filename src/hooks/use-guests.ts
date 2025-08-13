@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -15,7 +15,8 @@ import {
 import { startOfDay, endOfDay } from 'date-fns';
 import { useToast } from './use-toast';
 import * as firestoreService from '@/services/firestoreService';
-import { useUserProfile, UserProfile, Center, USER_ROLES } from './use-user-profile';
+import { useUserProfile, UserProfile } from './use-user-profile';
+import { useTeams } from './use-teams';
 
 export interface Guest {
     id: string;
@@ -26,7 +27,7 @@ export interface Guest {
     ownerId: string;
     ownerName: string;
     ownerPhotoURL: string | null;
-    center: Center;
+    center: UserProfile['center'];
     createdAt: Timestamp;
     isCancelled: boolean;
     cancelledBy?: string;
@@ -39,16 +40,23 @@ export interface Guest {
 interface UseGuestsOptions {
   daily?: boolean;
   dateRange?: { start: Date, end: Date };
-  scope?: 'user' | 'all';
+  scope: 'personal' | 'team' | 'global';
 }
 
-export function useGuests({ daily = false, dateRange, scope = 'user' }: UseGuestsOptions = {}) {
+export function useGuests({ daily = false, dateRange, scope = 'personal' }: UseGuestsOptions) {
   const { userProfile } = useUserProfile();
+  const { teams } = useTeams(); // Needed for team scope
   const { toast } = useToast();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({ global: true });
   const [error, setError] = useState<string | null>(null);
   
+  const teamMemberIds = useMemo(() => {
+    if (scope !== 'team' || !userProfile) return [];
+    const myTeams = teams.filter(t => t.teamLeadId === userProfile.id);
+    return myTeams.flatMap(t => t.memberIds || []);
+  }, [scope, userProfile, teams]);
+
   useEffect(() => {
     if (!userProfile) {
       setIsLoading({ global: false });
@@ -57,55 +65,34 @@ export function useGuests({ daily = false, dateRange, scope = 'user' }: UseGuest
 
     const guestsCollection = collection(db, 'guests');
     let guestsQuery;
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
 
-    const hasGlobalView = userProfile.roles.some(r => 
-        [USER_ROLES.ADMIN, USER_ROLES.GENERAL_MANAGER, USER_ROLES.SECURITY].includes(r)
-    );
-
-    const effectiveScope = hasGlobalView ? scope : 'user';
-
-    if (daily) {
-      if (effectiveScope === 'all') {
-        // Global view for admins, managers, security
-        guestsQuery = query(
-          guestsCollection,
-          where('visitStartDateTime', '>=', todayStart),
-          where('visitStartDateTime', '<=', todayEnd),
-          orderBy('visitStartDateTime', 'asc')
-        );
-      } else {
-        // User-specific view for employees
-        guestsQuery = query(
-          guestsCollection,
-          where('ownerId', '==', userProfile.id),
-          where('visitStartDateTime', '>=', todayStart),
-          where('visitStartDateTime', '<=', todayEnd),
-          orderBy('visitStartDateTime', 'asc')
-        );
-      }
-    } else if (dateRange) {
-        // This part is mainly for the calendar view, which might also need scope adjustments
-         if (effectiveScope === 'all') {
-            guestsQuery = query(
-                guestsCollection,
-                where('visitStartDateTime', '>=', dateRange.start),
-                where('visitStartDateTime', '<=', dateRange.end)
-            );
-        } else {
-             guestsQuery = query(
-                guestsCollection,
-                where('ownerId', '==', userProfile.id),
-                where('visitStartDateTime', '>=', dateRange.start),
-                where('visitStartDateTime', '<=', dateRange.end)
-            );
-        }
-    } else {
+    // Define date range for query
+    const range = dateRange ? dateRange : daily ? { start: startOfDay(new Date()), end: endOfDay(new Date()) } : null;
+    if (!range) {
         setIsLoading({ global: false });
         return;
     }
 
+    // Base query with date filter and ordering
+    const baseQueryConstraints = [
+        where('visitStartDateTime', '>=', range.start),
+        where('visitStartDateTime', '<=', range.end),
+        orderBy('visitStartDateTime', 'asc')
+    ];
+
+    // Add scope-specific filter
+    if (scope === 'personal') {
+        guestsQuery = query(guestsCollection, where('ownerId', '==', userProfile.id), ...baseQueryConstraints);
+    } else if (scope === 'team') {
+        if (teamMemberIds.length > 0) {
+            guestsQuery = query(guestsCollection, where('ownerId', 'in', teamMemberIds), ...baseQueryConstraints);
+        } else {
+            // Team lead with no team members - show only personal
+             guestsQuery = query(guestsCollection, where('ownerId', '==', userProfile.id), ...baseQueryConstraints);
+        }
+    } else { // 'global'
+        guestsQuery = query(guestsCollection, ...baseQueryConstraints);
+    }
 
     const unsubscribe = onSnapshot(guestsQuery, 
       (snapshot) => {
@@ -116,13 +103,13 @@ export function useGuests({ daily = false, dateRange, scope = 'user' }: UseGuest
       },
       (err) => {
         console.error("Error fetching guests:", err);
-        setError("שגיאת הרשאות או צורך באינדקס. בדוק את קונסולת הדפדפפן לקבלת קישור ליצירת אינדקס אם נדרש.");
+        setError("שגיאת הרשאות או צורך באינדקס. בדוק את קונסולת הדפדפפן.");
         setIsLoading({ global: false });
       }
     );
 
     return () => unsubscribe();
-  }, [userProfile, daily, dateRange, scope]);
+  }, [userProfile, daily, dateRange, scope, teamMemberIds]);
 
 
   const setLoadingForGuest = (guestId: string, value: boolean) => {

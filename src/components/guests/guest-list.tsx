@@ -1,13 +1,7 @@
-
 "use client";
 
-import { useMemo } from "react";
-import { useGuests, Guest } from "@/hooks/use-guests";
-import { useUserProfile } from "@/hooks/use-user-profile";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { Guest } from "@/hooks/use-guests";
 import {
   Table,
   TableBody,
@@ -19,26 +13,27 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { GuestTableRow } from "./guest-table-row";
-import { Center } from "@/hooks/use-user-profile";
+import { UserProfile } from "@/hooks/use-user-profile";
+import { EditGuestDialog } from "./edit-guest-dialog";
 
 interface GuestListProps {
-  center: Center;
-  onEditGuest: (guest: Guest) => void;
-  scope?: 'user' | 'all';
+  guests: Guest[];
+  isLoading: boolean;
+  error?: string | null;
+  userProfile: UserProfile | null;
+  title?: string;
+  className?: string;
 }
 
-export function GuestList({ center, onEditGuest, scope = 'user' }: GuestListProps) {
-  const { userProfile } = useUserProfile();
-  const { guests: allDailyGuests, isLoading, error } = useGuests({ daily: true, scope: scope });
-
-  const processedGuests = useMemo(() => {
-    return allDailyGuests
-      .filter(guest => guest.center === center)
-      .sort((a, b) => a.visitStartDateTime.toMillis() - b.visitStartDateTime.toMillis());
-  }, [allDailyGuests, center]);
+export function GuestList({ guests, isLoading, error, userProfile, title, className }: GuestListProps) {
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
 
   const handleEdit = (guest: Guest) => {
-    onEditGuest(guest);
+    setEditingGuest(guest);
+  };
+  
+  const handleCloseDialog = () => {
+    setEditingGuest(null);
   }
 
   if (isLoading) {
@@ -56,33 +51,37 @@ export function GuestList({ center, onEditGuest, scope = 'user' }: GuestListProp
   }
 
   return (
-    <Card dir="rtl" className="w-full">
-      <CardContent className="p-0">
-        <div className="w-full overflow-x-auto">
-          <Table>
-            <TableHeader>
+    <div className={className}>
+      {title && <h3 className="text-md font-semibold mb-2 px-1">{title}</h3>}
+      <div className="border rounded-lg w-full overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>שם המוזמן</TableHead>
+              <TableHead>שעת ביקור</TableHead>
+              <TableHead>עובד מארח</TableHead>
+              <TableHead>סטטוס</TableHead>
+              <TableHead>פעולות</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {guests.length === 0 ? (
               <TableRow>
-                <TableHead>שם המוזמן</TableHead>
-                <TableHead>שעת ביקור</TableHead>
-                <TableHead>עובד מארח</TableHead>
-                <TableHead>סטטוס</TableHead>
-                <TableHead>פעולות</TableHead>
+                <TableCell colSpan={5} className="text-center h-24">לא נמצאו מוזמנים רלוונטיים.</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {processedGuests.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24">לא נמצאו מוזמנים להיום במרכז זה.</TableCell>
-                </TableRow>
-              ) : processedGuests.map(guest => (
-                <GuestTableRow key={guest.id} guest={guest} userProfile={userProfile} onEdit={handleEdit} />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+            ) : guests.map(guest => (
+              <GuestTableRow key={guest.id} guest={guest} userProfile={userProfile} onEdit={handleEdit} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {editingGuest && (
+        <EditGuestDialog
+          guest={editingGuest}
+          open={!!editingGuest}
+          onOpenChange={(open) => { if (!open) handleCloseDialog() }}
+        />
+      )}
+    </div>
   );
 }
-
-    
