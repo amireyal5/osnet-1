@@ -1,20 +1,23 @@
-# **App Name**: CivicConnect
+# **App Name**: Social Scheduler Pro
 
 ## Core Features:
 
-- Profile Management: User profile management (name, contact details, preferences).
-- Dashboard View: A dashboard summarizing relevant updates, tasks, and notifications for the social services user.
-- Notifications: A system of automated notifications, reminders and escalations to support client service workflows.
-- Resource Suggestions: AI-powered tool to suggest relevant services based on user input and available resources.
-- Case Management: Centralized interface to track and manage client interactions, service requests, and case status.
-- Security Measures: Secure data storage and role-based access control to protect sensitive information.
+- User Authentication: User authentication via Google or email/password.
+- Profile Setup: Collect first name, last name, and date of birth on first login.
+- Dashboard: Dashboard view of personal weekly schedule and upcoming meetings.
+- Weekly Schedule: Weekly schedule creation and editing for each employee, displayed on dashboard.
+- Meeting Scheduler: Calendar interface (daily, weekly, monthly views) for creating and managing meetings.
+- Risk Assessment: Option to mark meetings as 'at risk'.
+- User Management: Admin interface for approving new users and assigning roles (employee, admin, security).
+- RTL Support: Full support for right-to-left (RTL) directionality for all UI components, including forms, tables, buttons and text.
+- Responsiveness: Fully adapted to a variety of screen sizes, including mobile devices.
 
 ## Style Guidelines:
 
-- Primary color: Deep blue (#3F51B5), representing trust and stability.
-- Background color: Light grey (#F0F2F5), offering a clean and calm backdrop.
-- Accent color: Teal (#009688), drawing attention to calls to action and key elements.
-- Body and headline font: 'PT Sans', a versatile sans-serif providing readability and a modern touch.
-- Use clear and recognizable icons, based on the Material Design guidelines, to represent actions and categories.
-- Prioritize a clear, tab-based layout with well-defined sections for efficient navigation.
-- Employ subtle transitions and feedback animations to enhance user interaction without overwhelming the user.
+- Primary color: Deep violet (#673AB7) for a sense of calm and focus in a potentially stressful environment.
+- Background color: Very light lavender (#F3E5F5). The hue is closely matched to the primary color, but greatly desaturated for a calm and pleasing background.
+- Accent color: Teal (#009688) to complement the violet; provides visual interest and signals important elements.
+- Body: 'Inter', sans-serif; Headers: 'Space Grotesk', sans-serif.
+- Use clear and simple icons to represent different actions and categories in the application.
+- Use a consistent and intuitive layout to ensure ease of navigation.
+- Subtle transitions and animations to enhance user experience without being distracting.

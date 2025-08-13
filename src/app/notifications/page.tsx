@@ -1,109 +1,102 @@
-import { PageHeader } from '@/components/page-header';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Bell, AlertTriangle, Info, FileText } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 
-type Notification = {
-  id: number;
-  type: 'reminder' | 'alert' | 'info' | 'document';
-  title: string;
-  description: string;
-  timestamp: string;
-};
+"use client";
 
-const notifications: Notification[] = [
-  {
-    id: 1,
-    type: 'reminder',
-    title: 'Upcoming Appointment',
-    description: "Reminder: You have an appointment with Jane Smith tomorrow at 10:00 AM.",
-    timestamp: '2 hours ago',
-  },
-  {
-    id: 2,
-    type: 'alert',
-    title: 'Urgent Action Required',
-    description: "John Doe's case file is missing critical documentation. Please update as soon as possible.",
-    timestamp: '1 day ago',
-  },
-  {
-    id: 3,
-    type: 'info',
-    title: 'System Update',
-    description: 'A new version of the reporting module is now available. Please explore the new features.',
-    timestamp: '3 days ago',
-  },
-  {
-    id: 4,
-    type: 'document',
-    title: 'New Document Received',
-    description: "A new document has been uploaded for Mark Johnson's housing application.",
-    timestamp: '4 days ago',
-  },
-    {
-    id: 5,
-    type: 'reminder',
-    title: 'Quarterly Report Due',
-    description: "Your Q2 performance report is due at the end of this week.",
-    timestamp: '5 days ago',
-  },
-];
-
-const notificationIcons: Record<Notification['type'], LucideIcon> = {
-  reminder: Bell,
-  alert: AlertTriangle,
-  info: Info,
-  document: FileText,
-};
-
-const notificationColors: Record<Notification['type'], string> = {
-    reminder: 'text-blue-500',
-    alert: 'text-red-500',
-    info: 'text-gray-500',
-    document: 'text-green-500',
-}
+import { MainLayout } from "@/components/main-layout";
+import { useAuthCheck } from "@/hooks/use-auth-check";
+import { useNotifications } from "@/hooks/use-notifications";
+import { ThreadsList } from "@/components/notifications/ThreadsList";
+import { ConversationView } from "@/components/notifications/ConversationView";
+import { SendNotificationForm } from "@/components/notifications/SendNotificationForm";
+import { Button } from "@/components/ui/button";
+import { MessageSquarePlus, Loader2, PenSquare, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function NotificationsPage() {
-  return (
-    <div className="flex flex-col h-full">
-      <PageHeader title="Notifications" />
-      <main className="flex-1 p-4 md:p-6 lg:p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>All Notifications</CardTitle>
-            <CardDescription>
-              Review all your notifications, reminders, and escalations.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {notifications.map((notification) => {
-                const Icon = notificationIcons[notification.type];
-                return (
-                  <div key={notification.id} className="flex items-start gap-4 p-4 rounded-lg border">
-                    <div className={`p-2 rounded-full bg-muted ${notificationColors[notification.type]}`}>
-                        <Icon className="h-6 w-6" />
+    useAuthCheck();
+    const { 
+        threads, 
+        selectedThread, 
+        setSelectedThread,
+        messages, 
+        isLoading, 
+        loadMoreMessages, 
+        hasMoreMessages, 
+        handleSendMessage, 
+        handleCreateThread,
+        handleDeleteMessage,
+        handleHideThread,
+        handleTyping,
+    } = useNotifications();
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    const handleThreadSelect = (threadId: string) => {
+        const thread = threads.find(t => t.id === threadId);
+        if (thread) {
+            setSelectedThread(thread);
+        }
+    };
+
+    return (
+        <MainLayout>
+            <div className="h-dvh md:h-[calc(100vh-100px)] md:border md:rounded-lg bg-card text-card-foreground md:shadow-sm flex flex-row overflow-hidden">
+                <aside className={cn(
+                    "w-full md:w-1/3 border-e flex flex-col transition-transform duration-300 h-full",
+                    selectedThread && "hidden md:flex"
+                )}>
+                    <div className="p-4 border-b flex items-center justify-between shrink-0">
+                        <h2 className="text-xl font-bold font-headline">שיחות</h2>
+                        <Button variant="ghost" size="icon" onClick={() => setIsCreateModalOpen(true)}>
+                           <PenSquare />
+                        </Button>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-semibold text-lg">{notification.title}</h3>
-                        <p className="text-sm text-muted-foreground">{notification.timestamp}</p>
-                      </div>
-                      <p className="text-muted-foreground mt-1">{notification.description}</p>
-                    </div>
-                  </div>
-                );
-              })}
+
+                    <SendNotificationForm
+                        isOpen={isCreateModalOpen}
+                        onOpenChange={setIsCreateModalOpen}
+                        onCreateThread={handleCreateThread}
+                    />
+
+                    {isLoading.threads ? (
+                        <div className="flex-1 flex items-center justify-center">
+                            <Loader2 className="animate-spin" />
+                        </div>
+                    ) : (
+                        <ThreadsList 
+                            threads={threads} 
+                            selectedThreadId={selectedThread?.id}
+                            onThreadSelect={handleThreadSelect}
+                            onHideThread={handleHideThread}
+                        />
+                    )}
+                </aside>
+                <main className={cn(
+                    "w-full md:w-2/3 flex flex-col flex-1 transition-transform duration-300 h-full",
+                    !selectedThread && "hidden md:flex"
+                )}>
+                    {selectedThread ? (
+                        <ConversationView 
+                            key={selectedThread.id}
+                            thread={selectedThread}
+                            messages={messages}
+                            isLoading={isLoading.messages}
+                            onSendMessage={handleSendMessage}
+                            loadMoreMessages={loadMoreMessages}
+                            hasMoreMessages={hasMoreMessages}
+                            onDeleteMessage={(messageId) => handleDeleteMessage(selectedThread.id, messageId)}
+                            onBack={() => setSelectedThread(null)}
+                            onTyping={() => handleTyping(selectedThread.id)}
+                        />
+                    ) : (
+                        <div className="hidden md:flex flex-1 items-center justify-center">
+                            <div className="text-center text-muted-foreground">
+                                <MessageSquarePlus size={48} className="mx-auto" />
+                                <p>בחר שיחה או צור אחת חדשה</p>
+                            </div>
+                        </div>
+                    )}
+                </main>
             </div>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
-  );
+        </MainLayout>
+    );
 }

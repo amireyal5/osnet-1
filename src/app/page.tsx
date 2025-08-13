@@ -1,185 +1,153 @@
-import { PageHeader } from '@/components/page-header';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Bell,
-  CheckCircle2,
-  FileText,
-  HelpCircle,
-  Users,
-} from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
-const tasks = [
-  {
-    id: 1,
-    title: 'Follow up with John Doe',
-    description: 'Regarding housing application status.',
-    status: 'In Progress',
-  },
-  {
-    id: 2,
-    title: 'Schedule appointment for Jane Smith',
-    description: 'For mental health counseling.',
-    status: 'Pending',
-  },
-  {
-    id: 3,
-    title: 'Submit quarterly report',
-    description: 'For Q2 program outcomes.',
-    status: 'Completed',
-  },
-];
+"use client";
 
-const activities = [
-  {
-    id: 1,
-    user: 'You',
-    action: 'updated the case file for',
-    target: 'Jane Smith',
-    time: '2 hours ago',
-    avatar: 'JS',
-  },
-  {
-    id: 2,
-    user: 'AI Assistant',
-    action: 'suggested new resources for',
-    target: 'Mark Johnson',
-    time: '5 hours ago',
-    avatar: 'AI',
-  },
-  {
-    id: 3,
-    user: 'System',
-    action: 'sent a reminder notification to',
-    target: 'Emily White',
-    time: '1 day ago',
-    avatar: 'SYS',
-  },
-];
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { ArrowLeft, CalendarCheck, Users, Briefcase, Sparkles } from "lucide-react";
+import Image from "next/image";
 
-const notifications = [
-  {
-    id: 1,
-    icon: Bell,
-    title: 'Appointment Reminder',
-    description: 'You have an upcoming appointment with John Doe tomorrow at 10 AM.',
-    time: '1h ago'
-  },
-  {
-    id: 2,
-    icon: FileText,
-    title: 'New Document Uploaded',
-    description: 'A new document has been added to the case of "Family Support Initiative".',
-    time: '3h ago'
-  },
-];
-
-
-export default function DashboardPage() {
+function Logo() {
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader title="Dashboard" />
-      <main className="flex-1 p-4 md:p-6 lg:p-8 grid gap-8 grid-cols-1 lg:grid-cols-3">
-        <div className="lg:col-span-2 flex flex-col gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>My Tasks</CardTitle>
-              <CardDescription>
-                An overview of your current tasks and their statuses.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-4">
-                {tasks.map((task) => (
-                  <li key={task.id} className="flex items-start gap-4">
-                    <CheckCircle2 className={`mt-1 h-5 w-5 ${task.status === 'Completed' ? 'text-green-500' : 'text-muted-foreground'}`} />
-                    <div className="flex-1">
-                      <p className="font-medium">{task.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {task.description}
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">View</Button>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+    <svg 
+        className="h-8 w-auto text-primary" 
+        viewBox="0 0 48 48" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <path d="M24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4Z" fill="currentColor" />
+        <path d="M31 18C31 21.866 27.866 25 24 25C20.134 25 17 21.866 17 18C17 14.134 20.134 11 24 11C27.866 11 31 14.134 31 18Z" fill="white" />
+        <path d="M14 34C14 29.5817 17.5817 26 22 26H26C30.4183 26 34 29.5817 34 34V37H14V34Z" fill="white" />
+    </svg>
+  );
+}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                A log of recent actions within the system.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-4">
-                {activities.map((activity) => (
-                  <li key={activity.id} className="flex items-center gap-4">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className={activity.user === 'AI Assistant' ? 'bg-primary text-primary-foreground' : ''}>{activity.avatar}</AvatarFallback>
-                    </Avatar>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">{activity.user}</span>{' '}
-                      {activity.action}{' '}
-                      <span className="font-medium text-foreground">{activity.target}</span>.
+const featureCards = [
+    {
+        icon: CalendarCheck,
+        title: "תוכנית שבועית חכמה",
+        description: "תכנן את השבוע שלך בקלות, הצב יעדים ונהל משימות בממשק ויזואלי ונוח.",
+        color: "text-sky-500",
+    },
+    {
+        icon: Users,
+        title: "ניהול מוזמנים מתקדם",
+        description: "תאם פגישות, עקוב אחר הגעה ונהל את כל המוזמנים שלך במקום אחד מרכזי.",
+        color: "text-purple-500",
+    },
+    {
+        icon: Briefcase,
+        title: "הפניות ומעקב",
+        description: "נהל הפניות בין גורמים שונים, עקוב אחר התקדמות וודא ששום דבר לא נופל בין הכיסאות.",
+         color: "text-amber-500",
+    },
+    {
+        icon: Sparkles,
+        title: "כלי עזר מותאמים",
+        description: "השתמש בכלים ייעודיים לעובדים סוציאליים המפשטים תהליכים וחוסכים זמן יקר.",
+        color: "text-rose-500",
+    }
+]
+
+export default function LandingPage() {
+  return (
+    <div className="flex flex-col min-h-screen bg-background" dir="rtl">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm">
+            <div className="container mx-auto flex items-center justify-between h-20 px-4">
+                <Link href="/" className="flex items-center gap-2">
+                    <Logo />
+                    <span className="text-2xl font-bold text-primary font-headline">עו"סנט</span>
+                </Link>
+                <nav className="flex items-center gap-2">
+                    <Button variant="ghost" asChild>
+                        <Link href="/login">כניסה</Link>
+                    </Button>
+                    <Button asChild>
+                        <Link href="/signup">הרשמה</Link>
+                    </Button>
+                </nav>
+            </div>
+        </header>
+
+        <main className="flex-1">
+            <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32">
+                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent -z-10" />
+                 <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full -z-20" />
+                <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center">
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="text-center lg:text-right"
+                    >
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-headline text-gray-800 leading-tight">
+                            פלטפורמה אחת, כל הכלים. <br className="hidden lg:block" />
+                            <span className="text-primary">לעובדי המנהל לשירותים חברתיים</span>
+                        </h1>
+                        <p className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
+                            עו"סנט היא הפלטפורמה המקיפה לניהול יום העבודה שלך. מתכנון שבועי ועד ניהול מוזמנים, הכל במקום אחד, פשוט ונגיש.
+                        </p>
+                        <div className="mt-8 flex justify-center lg:justify-start">
+                            <Button size="lg" asChild className="group">
+                                <Link href="/signup">
+                                    התחילו עכשיו
+                                    <ArrowLeft className="h-5 w-5 mr-2 transition-transform group-hover:-translate-x-1" />
+                                </Link>
+                            </Button>
+                        </div>
+                    </motion.div>
+                     <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                     >
+                        <Image
+                            src="/home.webp"
+                            width={500}
+                            height={333}
+                            alt="Dashboard preview"
+                            className="rounded-xl shadow-2xl"
+                            data-ai-hint="dashboard user interface"
+                        />
+                    </motion.div>
+                </div>
+            </section>
+            
+            <section className="py-20 lg:py-32 bg-white">
+                <div className="container mx-auto px-4 text-center">
+                    <h2 className="text-3xl md:text-4xl font-bold font-headline">כל מה שצריך במקום אחד</h2>
+                    <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+                        הפסיקו לקפוץ בין כלים שונים. עו"סנט מרכזת עבורכם את כל הפעולות החשובות במערכת אחת אינטואיטיבית.
                     </p>
-                    <span className="ml-auto text-xs text-muted-foreground">{activity.time}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-1 flex flex-col gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-               <Button variant="link" className="p-0 h-auto -mt-1 ml-auto">
-                <Link href="/notifications">View all</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-4">
-                {notifications.map((notification) => (
-                  <li key={notification.id} className="flex items-start gap-4">
-                    <notification.icon className="mt-1 h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{notification.title}</p>
-                      <p className="text-sm text-muted-foreground">{notification.description}</p>
-                       <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                    <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {featureCards.map((feature, index) => (
+                            <motion.div
+                                key={feature.title}
+                                initial={{ opacity: 0, y: 50 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
+                                className="bg-card p-8 rounded-xl shadow-lg border border-transparent hover:border-primary hover:shadow-2xl transition-all duration-300"
+                            >
+                                <div className={`inline-block p-4 bg-primary/10 rounded-full ${feature.color}`}>
+                                    <feature.icon className="h-8 w-8" />
+                                </div>
+                                <h3 className="mt-6 text-xl font-bold font-headline">{feature.title}</h3>
+                                <p className="mt-2 text-muted-foreground">{feature.description}</p>
+                            </motion.div>
+                        ))}
                     </div>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-          <Card className="bg-primary text-primary-foreground">
-             <CardHeader>
-              <CardTitle>Need Help?</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center text-center gap-4">
-               <HelpCircle className="w-12 h-12" />
-               <CardDescription className="text-primary-foreground/80">
-                Our AI-powered Resource Finder can help you find the right services for your clients' needs.
-              </CardDescription>
-              <Button variant="secondary" asChild>
-                <Link href="/resources">Find Resources</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+                </div>
+            </section>
+        </main>
+
+        <footer className="bg-gray-800 text-white">
+            <div className="container mx-auto py-8 px-4 text-center">
+                <p>&copy; {new Date().getFullYear()} עו"סנט. כל הזכויות שמורות.</p>
+            </div>
+        </footer>
     </div>
   );
 }
+
+    
