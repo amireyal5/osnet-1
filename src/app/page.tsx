@@ -108,7 +108,6 @@ export default function LandingPage() {
                             alt="Dashboard preview"
                             className="rounded-xl shadow-2xl"
                             data-ai-hint="dashboard user interface"
-                            unoptimized
                         />
                     </motion.div>
                 </div>
