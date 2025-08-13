@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useGuests } from "@/hooks/use-guests";
@@ -9,11 +10,13 @@ import { useMemo } from "react";
 export function TeamGuestView() {
   const { userProfile } = useUserProfile();
   const { guests: teamGuests, isLoading: isTeamLoading, error: teamError } = useGuests({ daily: true, scope: 'team' });
-  const { guests: personalGuests, isLoading: isPersonalLoading, error: personalError } = useGuests({ daily: true, scope: 'personal' });
   
-  const otherTeamGuests = useMemo(() => {
-    if (!userProfile) return [];
-    return teamGuests.filter(g => g.ownerId !== userProfile.id);
+  // Separate personal guests from the rest of the team's guests
+  const { personalGuests, otherTeamGuests } = useMemo(() => {
+    if (!userProfile) return { personalGuests: [], otherTeamGuests: [] };
+    const personal = teamGuests.filter(g => g.ownerId === userProfile.id);
+    const other = teamGuests.filter(g => g.ownerId !== userProfile.id);
+    return { personalGuests: personal, otherTeamGuests: other };
   }, [teamGuests, userProfile]);
 
   return (
@@ -25,8 +28,8 @@ export function TeamGuestView() {
         <CardContent>
           <GuestList
             guests={personalGuests}
-            isLoading={isPersonalLoading}
-            error={personalError}
+            isLoading={isTeamLoading}
+            error={teamError}
             userProfile={userProfile}
           />
         </CardContent>

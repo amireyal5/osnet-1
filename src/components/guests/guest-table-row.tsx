@@ -2,7 +2,7 @@
 "use client";
 
 import { Guest, useGuests } from "@/hooks/use-guests";
-import { UserProfile } from "@/hooks/use-user-profile";
+import { UserProfile, USER_ROLES } from "@/hooks/use-user-profile";
 import { format, isPast } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
@@ -17,7 +17,6 @@ import { MoreHorizontal, Trash2, XCircle, LogIn, LogOut, Loader2, AlertTriangle,
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { EditGuestDialog } from "./edit-guest-dialog";
 
 interface GuestTableRowProps {
   guest: Guest;
@@ -43,7 +42,7 @@ const statusText: { [key: string]: string } = {
 };
 
 export function GuestTableRow({ guest, userProfile, onEdit }: GuestTableRowProps) {
-    const { updateGuestStatus, deleteGuest, cancelGuest, isLoadingGuest } = useGuests();
+    const { updateGuestStatus, deleteGuest, cancelGuest, isLoadingGuest } = useGuests({ scope: 'personal' }); // Scope doesn't matter for actions
     const [isUpdating, setIsUpdating] = useState(false);
 
     const getInitials = (name: string = '') => {
@@ -60,9 +59,16 @@ export function GuestTableRow({ guest, userProfile, onEdit }: GuestTableRowProps
       setIsUpdating(false);
     }
     
-    const isSecurity = userProfile?.roles.includes("מאבטח");
-    const isOwner = userProfile?.id === guest.ownerId;
-    const isManager = userProfile?.roles.some(r => ['מנהל מערכת', 'ראש מנהל'].includes(r));
+    if (!userProfile) return null;
+
+    const isSecurity = userProfile.roles.includes(USER_ROLES.SECURITY);
+    const isOwner = userProfile.id === guest.ownerId;
+    const isManager = userProfile.roles.some(r => [USER_ROLES.ADMIN, USER_ROLES.GENERAL_MANAGER].includes(r));
+
+    const canEdit = isOwner || isManager;
+    const canCancel = isManager;
+    const canDelete = isOwner || isManager;
+    const canUpdateStatus = isSecurity;
 
     const isPastAppointment = isPast(guest.visitEndDateTime.toDate());
 
@@ -71,17 +77,17 @@ export function GuestTableRow({ guest, userProfile, onEdit }: GuestTableRowProps
     <TableRow className={cn(
         guest.isCancelled && "opacity-50 bg-destructive/10",
         guest.atRisk && !guest.isCancelled && "bg-destructive/5 text-destructive",
-        isPastAppointment && "opacity-60"
+        isPastAppointment && !['arrived', 'departed', 'no-show'].includes(guest.status) && "opacity-60"
     )}>
       <TableCell>
         <div className="flex items-center gap-2">
             {guest.atRisk && <AlertTriangle className="h-4 w-4 text-destructive" />}
-            <span>{guest.fullName}</span>
+            <span className="font-medium">{guest.fullName}</span>
         </div>
       </TableCell>
       <TableCell>{format(guest.visitStartDateTime.toDate(), 'HH:mm')} - {format(guest.visitEndDateTime.toDate(), 'HH:mm')}</TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs">
           <Avatar className="h-8 w-8">
             <AvatarImage src={guest.ownerPhotoURL || undefined} />
             <AvatarFallback>{getInitials(guest.ownerName)}</AvatarFallback>
@@ -90,19 +96,19 @@ export function GuestTableRow({ guest, userProfile, onEdit }: GuestTableRowProps
         </div>
       </TableCell>
       <TableCell>
-        <Badge className={cn(getStatusVariant(guest.status), guest.atRisk && "border-destructive/20")}>
-          {guest.isCancelled ? `בוטל ע"י מנהל` : statusText[guest.status]}
+        <Badge className={cn("font-normal", getStatusVariant(guest.status), guest.atRisk && "border-destructive/20")}>
+          {guest.isCancelled ? `בוטל` : statusText[guest.status]}
         </Badge>
       </TableCell>
       <TableCell>
         {isUpdating || isLoadingGuest[guest.id] ? <Loader2 className="animate-spin"/> : (
           <>
-            {isSecurity && !guest.isCancelled && (
+            {canUpdateStatus && !guest.isCancelled && (
               <div className="flex gap-1">
                 <Button variant="outline" size="sm" onClick={() => handleUpdate("arrived")} disabled={guest.status === 'arrived' || guest.status === 'departed' || isPastAppointment}>
                   <LogIn className="w-4 h-4 me-1" /> הגעה
                 </Button>
-                 <Button variant="outline" size="sm" onClick={() => handleUpdate("departed")} disabled={guest.status === 'departed' || guest.status !== 'arrived' || isPastAppointment}>
+                 <Button variant="outline" size="sm" onClick={() => handleUpdate("departed")} disabled={guest.status === 'departed' || guest.status !== 'arrived'}>
                   <LogOut className="w-4 h-4 me-1" /> יציאה
                 </Button>
                 <Button variant="destructive-outline" size="sm" onClick={() => handleUpdate("no-show")} disabled={guest.status !== 'scheduled' || isPastAppointment}>
@@ -110,17 +116,17 @@ export function GuestTableRow({ guest, userProfile, onEdit }: GuestTableRowProps
                 </Button>
               </div>
             )}
-            {!isSecurity && !guest.isCancelled && (
+            {!canUpdateStatus && !guest.isCancelled && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled={isPastAppointment}>
+                  <Button variant="ghost" size="icon" disabled={isPastAppointment && !isManager}>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {(isOwner || isManager) && <DropdownMenuItem onSelect={() => onEdit(guest)}><Edit className="me-2 h-4 w-4"/> ערוך</DropdownMenuItem>}
-                  {(isOwner || isManager) && <DropdownMenuItem className="text-destructive" onSelect={() => deleteGuest(guest, 'single')}><Trash2 className="me-2 h-4 w-4"/> מחק</DropdownMenuItem>}
-                  {isManager && <DropdownMenuItem className="text-amber-600" onSelect={() => cancelGuest(guest.id)}><XCircle className="me-2 h-4 w-4"/> בטל</DropdownMenuItem>}
+                  {canEdit && <DropdownMenuItem onSelect={() => onEdit(guest)}><Edit className="me-2 h-4 w-4"/> ערוך</DropdownMenuItem>}
+                  {canDelete && <DropdownMenuItem className="text-destructive" onSelect={() => deleteGuest(guest, 'single')}><Trash2 className="me-2 h-4 w-4"/> מחק</DropdownMenuItem>}
+                  {canCancel && <DropdownMenuItem className="text-amber-600" onSelect={() => cancelGuest(guest.id)}><XCircle className="me-2 h-4 w-4"/> בטל</DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

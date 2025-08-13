@@ -40,7 +40,7 @@ export interface Guest {
 interface UseGuestsOptions {
   daily?: boolean;
   dateRange?: { start: Date, end: Date };
-  scope: 'personal' | 'team' | 'global';
+  scope: 'personal' | 'team' | 'global' | 'all'; // 'all' is a special case for non-daily global view.
 }
 
 export function useGuests({ daily = false, dateRange, scope = 'personal' }: UseGuestsOptions) {
@@ -53,8 +53,11 @@ export function useGuests({ daily = false, dateRange, scope = 'personal' }: UseG
   
   const teamMemberIds = useMemo(() => {
     if (scope !== 'team' || !userProfile) return [];
+    // A team lead should see their own team members' guests
     const myTeams = teams.filter(t => t.teamLeadId === userProfile.id);
-    return myTeams.flatMap(t => t.memberIds || []);
+    const memberIds = new Set(myTeams.flatMap(t => t.memberIds || []));
+    memberIds.add(userProfile.id); // Also include the team lead's own guests
+    return Array.from(memberIds);
   }, [scope, userProfile, teams]);
 
   useEffect(() => {
@@ -67,18 +70,18 @@ export function useGuests({ daily = false, dateRange, scope = 'personal' }: UseG
     let guestsQuery;
 
     // Define date range for query
-    const range = dateRange ? dateRange : daily ? { start: startOfDay(new Date()), end: endOfDay(new Date()) } : null;
-    if (!range) {
-        setIsLoading({ global: false });
-        return;
+    let range = dateRange;
+    if (!range && daily) {
+        range = { start: startOfDay(new Date()), end: endOfDay(new Date()) };
     }
-
-    // Base query with date filter and ordering
-    const baseQueryConstraints = [
+    
+    // Base query with date filter and ordering, only if range is present
+    const baseQueryConstraints = range ? [
         where('visitStartDateTime', '>=', range.start),
         where('visitStartDateTime', '<=', range.end),
         orderBy('visitStartDateTime', 'asc')
-    ];
+    ] : [orderBy('visitStartDateTime', 'asc')];
+
 
     // Add scope-specific filter
     if (scope === 'personal') {
@@ -90,7 +93,7 @@ export function useGuests({ daily = false, dateRange, scope = 'personal' }: UseG
             // Team lead with no team members - show only personal
              guestsQuery = query(guestsCollection, where('ownerId', '==', userProfile.id), ...baseQueryConstraints);
         }
-    } else { // 'global'
+    } else { // 'global' or 'all'
         guestsQuery = query(guestsCollection, ...baseQueryConstraints);
     }
 
@@ -102,8 +105,8 @@ export function useGuests({ daily = false, dateRange, scope = 'personal' }: UseG
         setError(null);
       },
       (err) => {
-        console.error("Error fetching guests:", err);
-        setError("שגיאת הרשאות או צורך באינדקס. בדוק את קונסולת הדפדפפן.");
+        console.error(`Error fetching guests with scope: ${scope}`, err);
+        setError("שגיאת הרשאות. ייתכן שחסר אינדקס או שהרשאות הגישה ל-Firestore אינן תקינות.");
         setIsLoading({ global: false });
       }
     );
