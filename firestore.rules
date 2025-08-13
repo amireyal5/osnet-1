@@ -43,14 +43,34 @@ service cloud.firestore {
       allow write: if hasRole('מנהל מערכת');
     }
 
-    // Guests Collection
+    // Guests Collection - REVISED AND FINAL RULES
     match /guests/{guestId} {
-      // Admin/Manager/Security can do anything.
-      allow get, list, write, delete: if hasRole('מנהל מערכת') || hasRole('ראש מנהל') || hasRole('אבטחה');
+      // --- WRITE & CREATE RULES ---
       
-      // Employee/Team Lead can create guests, and read/write/delete their OWN guests.
-      allow create: if hasRole('עובד') || hasRole('ראש צוות');
-      allow read, write, delete: if (hasRole('עובד') || hasRole('ראש צוות')) && isOwner(resource);
+      // Admin/Manager can do anything.
+      allow write, delete: if hasRole('מנהל מערכת') || hasRole('ראש מנהל');
+      // Security can update existing guest records (e.g., status).
+      allow update: if hasRole('אבטחה');
+      // Any employee (including security and managers) can create guests.
+      allow create: if hasRole('עובד');
+      // A user can update or delete a guest record they own.
+      allow update, delete: if isOwner(resource);
+
+
+      // --- READ RULES (GET & LIST) ---
+      
+      // Global roles (Admins, Managers, Security) have full LIST access to the entire collection.
+      allow list: if hasRole('מנהל מערכת') || hasRole('ראש מנהל') || hasRole('אבטחה');
+      
+      // Team Leads can perform queries that might involve multiple ownerIds (e.g., 'in' queries).
+      allow list: if hasRole('ראש צוות');
+
+      // A regular employee can ONLY list guests that they own. This rule enforces the `where('ownerId', '==', ...)` clause.
+      allow list: if hasRole('עובד') && request.query.where.ownerId == request.auth.uid;
+      
+      // Anyone who can list a resource can also get it individually.
+      // Additionally, an owner can always get their own guest record.
+      allow get: if (hasRole('מנהל מערכת') || hasRole('ראש מנהל') || hasRole('אבטחה')) || isOwner(resource);
     }
     
     // Threads Collection (Conversations)
